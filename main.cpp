@@ -1,176 +1,141 @@
 #include <iostream>
-#include <limits>
+#include "simplex.h"
+#include "utils.h"
 
 using namespace std;
 
-class Simplex {
-public:
-    Simplex(double** constraintMatrix, double* constraintValues, double* objectiveCoefficients, int numConstraints, int numVariables) 
-        : constraintMatrix(constraintMatrix), constraintValues(constraintValues), objectiveCoefficients(objectiveCoefficients), numConstraints(numConstraints), numVariables(numVariables) {
-        tableau = new double*[numConstraints + 1];
-        for (int i = 0; i <= numConstraints; ++i) {
-            tableau[i] = new double[numVariables + numConstraints + 1]();
+void exibirCabecalho(int numRestricoes, int numVariaveis, double** matrizRestricoes, double* valoresRestricoes, double* coeficientesObjetivo, int contador) {
+    cout << "╔═══════════════════╗" << endl;
+    cout << "║   Simplex Solver  ║" << endl;
+    cout << "╚═══════════════════╝" << endl;
+
+    // Exibir a função objetivo
+    cout << "Função objetivo: Max Z = ";
+    for (int j = 0; j < numVariaveis; ++j) {
+        if (contador == j) {
+            // Exibir sublinhado para o coeficiente que está sendo preenchido
+            cout << "_x" << Utils::obterSubscrito(j + 1);
+        } else if (contador > j) {
+            // Exibir coeficiente já preenchido
+            cout << coeficientesObjetivo[j] << "x" << Utils::obterSubscrito(j + 1);
+        } else {
+            // Exibir 0 para coeficientes que ainda não foram preenchidos
+            cout << "0x" << Utils::obterSubscrito(j + 1);
         }
-        initializeTableau();
-    }
-
-    ~Simplex() {
-        for (int i = 0; i <= numConstraints; ++i) {
-            delete[] tableau[i];
-        }
-        delete[] tableau;
-    }
-
-    void solve() {
-        while (true) {
-            int pivotColumn = findPivotColumn();
-            if (pivotColumn == -1) break; // Optimal solution found
-
-            int pivotRow = findPivotRow(pivotColumn);
-            if (pivotRow == -1) {
-                cout << "Unbounded solution" << endl;
-                return;
-            }
-
-            performPivot(pivotRow, pivotColumn);
-        }
-        printSolution();
-    }
-
-private:
-    double** constraintMatrix;
-    double* constraintValues;
-    double* objectiveCoefficients;
-    int numConstraints, numVariables;
-    double** tableau;
-
-    void initializeTableau() {
-        for (int i = 0; i < numConstraints; ++i) {
-            for (int j = 0; j < numVariables; ++j) {
-                tableau[i][j] = constraintMatrix[i][j];
-            }
-            tableau[i][numVariables + i] = 1;
-            tableau[i][numVariables + numConstraints] = constraintValues[i];
-        }
-        for (int j = 0; j < numVariables; ++j) {
-            tableau[numConstraints][j] = -objectiveCoefficients[j];
+        if (j < numVariaveis - 1) {
+            cout << " + ";
         }
     }
+    cout << endl;
 
-    int findPivotColumn() {
-        int pivotColumn = -1;
-        double minValue = 0;
-        for (int j = 0; j < numVariables + numConstraints; ++j) {
-            if (tableau[numConstraints][j] < minValue) {
-                minValue = tableau[numConstraints][j];
-                pivotColumn = j;
-            }
-        }
-        return pivotColumn;
-    }
-
-    int findPivotRow(int pivotColumn) {
-        int pivotRow = -1;
-        double minRatio = std::numeric_limits<double>::max();
-        for (int i = 0; i < numConstraints; ++i) {
-            if (tableau[i][pivotColumn] > 0) {
-                double ratio = tableau[i][numVariables + numConstraints] / tableau[i][pivotColumn];
-                if (ratio < minRatio) {
-                    minRatio = ratio;
-                    pivotRow = i;
+    // Exibir as restrições gradualmente
+    int totalCoeficientesObjetivo = numVariaveis;
+    for (int i = 0; i < numRestricoes; ++i) {
+        // Exibir a restrição apenas se o contador já passou pela função objetivo e pela restrição anterior
+        if (contador >= totalCoeficientesObjetivo + i * (numVariaveis + 1)) {
+            cout << "Restrição " << i + 1 << ": ";
+            for (int j = 0; j < numVariaveis; ++j) {
+                int coefIndex = totalCoeficientesObjetivo + i * (numVariaveis + 1) + j;
+                if (contador == coefIndex) {
+                    // Exibir sublinhado para o coeficiente que está sendo preenchido
+                    cout << "_x" << Utils::obterSubscrito(j + 1);
+                } else if (contador > coefIndex) {
+                    // Exibir coeficiente já preenchido
+                    cout << matrizRestricoes[i][j] << "x" << Utils::obterSubscrito(j + 1);
+                } else {
+                    // Exibir 0 para coeficientes que ainda não foram preenchidos
+                    cout << "0x" << Utils::obterSubscrito(j + 1);
+                }
+                if (j < numVariaveis - 1) {
+                    cout << " + ";
                 }
             }
-        }
-        return pivotRow;
-    }
-
-    void performPivot(int pivotRow, int pivotColumn) {
-        double pivotValue = tableau[pivotRow][pivotColumn];
-        for (int j = 0; j <= numVariables + numConstraints; ++j) {
-            tableau[pivotRow][j] /= pivotValue;
-        }
-        for (int i = 0; i <= numConstraints; ++i) {
-            if (i != pivotRow) {
-                double factor = tableau[i][pivotColumn];
-                for (int j = 0; j <= numVariables + numConstraints; ++j) {
-                    tableau[i][j] -= factor * tableau[pivotRow][j];
-                }
+            // Exibir o valor do lado direito da restrição
+            int valorRestricaoIndex = totalCoeficientesObjetivo + i * (numVariaveis + 1) + numVariaveis;
+            if (contador == valorRestricaoIndex) {
+                // Exibir sublinhado para o valor do lado direito que está sendo preenchido
+                cout << " <= _";
+            } else if (contador > valorRestricaoIndex) {
+                // Exibir valor já preenchido
+                cout << " <= " << valoresRestricoes[i];
+            } else {
+                // Exibir 0 para valores que ainda não foram preenchidos
+                cout << " <= 0";
             }
+            cout << endl;
         }
     }
-
-    void printSolution() {
-        double* solution = new double[numVariables]();
-        for (int i = 0; i < numConstraints; ++i) {
-            bool isBasic = true;
-            int basicVar = -1;
-            for (int j = 0; j < numVariables; ++j) {
-                if (tableau[i][j] == 1) {
-                    if (basicVar == -1) {
-                        basicVar = j;
-                    } else {
-                        isBasic = false;
-                        break;
-                    }
-                } else if (tableau[i][j] != 0) {
-                    isBasic = false;
-                    break;
-                }
-            }
-            if (isBasic && basicVar != -1) {
-                solution[basicVar] = tableau[i][numVariables + numConstraints];
-            }
-        }
-        cout << "Optimal solution found:" << endl;
-        for (int j = 0; j < numVariables; ++j) {
-            cout << "x" << j + 1 << " = " << solution[j] << endl;
-        }
-        cout << "Optimal value: " << -tableau[numConstraints][numVariables + numConstraints] << endl;
-        delete[] solution;
-    }
-};
+    cout << "=====================" << endl;
+}
 
 int main() {
-    int numConstraints, numVariables;
-    cout << "Enter the number of constraints: ";
-    cin >> numConstraints;
-    cout << "Enter the number of variables: ";
-    cin >> numVariables;
+    int numRestricoes, numVariaveis;
 
-    double** constraintMatrix = new double*[numConstraints];
-    for (int i = 0; i < numConstraints; ++i) {
-        constraintMatrix[i] = new double[numVariables];
+    // Solicitar o número de restrições e variáveis
+    cout << "Digite o número de restrições: ";
+    cin >> numRestricoes;
+    cout << "Digite o número de variáveis: ";
+    cin >> numVariaveis;
+
+    // Alocar memória para a matriz de restrições e os vetores de valores
+    double** matrizRestricoes = new double*[numRestricoes];
+    for (int i = 0; i < numRestricoes; ++i) {
+        matrizRestricoes[i] = new double[numVariaveis];
     }
+    double* valoresRestricoes = new double[numRestricoes];
+    double* coeficientesObjetivo = new double[numVariaveis];
 
-    double* constraintValues = new double[numConstraints];
-    double* objectiveCoefficients = new double[numVariables];
-
-    cout << "Enter the coefficients of the constraints (A):" << endl;
-    for (int i = 0; i < numConstraints; ++i) {
-        for (int j = 0; j < numVariables; ++j) {
-            cin >> constraintMatrix[i][j];
+    // Inicializar os coeficientes com 0 para evitar lixo de memória
+    for (int i = 0; i < numRestricoes; ++i) {
+        for (int j = 0; j < numVariaveis; ++j) {
+            matrizRestricoes[i][j] = 0;
         }
+        valoresRestricoes[i] = 0;
+    }
+    for (int j = 0; j < numVariaveis; ++j) {
+        coeficientesObjetivo[j] = 0;
     }
 
-    cout << "Enter the right-hand side values (b):" << endl;
-    for (int i = 0; i < numConstraints; ++i) {
-        cin >> constraintValues[i];
+    int contador = 0;
+    while (contador < numVariaveis + numRestricoes * (numVariaveis + 1)) {
+        Utils::limparTela();
+        exibirCabecalho(numRestricoes, numVariaveis, matrizRestricoes, valoresRestricoes, coeficientesObjetivo, contador);
+    
+        if (contador < numVariaveis) {
+            // Preenchendo a função objetivo
+            cout << "Digite o coeficiente de x" << Utils::obterSubscrito(contador + 1) << " para a função objetivo: ";
+            cin >> coeficientesObjetivo[contador];
+        } else {
+            // Preenchendo os coeficientes das restrições e os valores do lado direito
+            int restricaoIndex = (contador - numVariaveis) / (numVariaveis + 1);
+            int variavelIndex = (contador - numVariaveis) % (numVariaveis + 1);
+    
+            if (variavelIndex < numVariaveis) {
+                // Preenchendo os coeficientes das variáveis nas restrições
+                cout << "Digite o coeficiente de x" << Utils::obterSubscrito(variavelIndex + 1) << " para a restrição " << restricaoIndex + 1 << ": ";
+                cin >> matrizRestricoes[restricaoIndex][variavelIndex];
+            } else {
+                // Preenchendo o valor do lado direito da restrição
+                cout << "Digite o valor do lado direito da restrição " << restricaoIndex + 1 << ": ";
+                cin >> valoresRestricoes[restricaoIndex];
+            }
+        }
+        contador++;
     }
+    Utils::limparTela();
+    exibirCabecalho(numRestricoes, numVariaveis, matrizRestricoes, valoresRestricoes, coeficientesObjetivo, contador);
 
-    cout << "Enter the coefficients of the objective function (c):" << endl;
-    for (int j = 0; j < numVariables; ++j) {
-        cin >> objectiveCoefficients[j];
+    // Resolve
+    Simplex simplex(matrizRestricoes, valoresRestricoes, coeficientesObjetivo, numRestricoes, numVariaveis);
+    simplex.resolver();
+
+    // Liberar memória
+    for (int i = 0; i < numRestricoes; ++i) {
+        delete[] matrizRestricoes[i];
     }
-
-    Simplex simplex(constraintMatrix, constraintValues, objectiveCoefficients, numConstraints, numVariables);
-    simplex.solve();
-
-    for (int i = 0; i < numConstraints; ++i) {
-        delete[] constraintMatrix[i];
-    }
-    delete[] constraintMatrix;
-    delete[] constraintValues;
-    delete[] objectiveCoefficients;
+    delete[] matrizRestricoes;
+    delete[] valoresRestricoes;
+    delete[] coeficientesObjetivo;
 
     return 0;
 }
