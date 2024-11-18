@@ -3,18 +3,18 @@
 
 Simplex::Simplex(double** matrizRestricoes, double* valoresRestricoes, double* coeficientesObjetivo, int numRestricoes, int numVariaveis) 
     : matrizRestricoes(matrizRestricoes), valoresRestricoes(valoresRestricoes), coeficientesObjetivo(coeficientesObjetivo), numRestricoes(numRestricoes), numVariaveis(numVariaveis), contagemIteracoes(0) {
-    tableau = new double*[numRestricoes + 1];
+    tabela = new double*[numRestricoes + 1];
     for (int i = 0; i <= numRestricoes; ++i) {
-        tableau[i] = new double[numVariaveis + numRestricoes + 1]();
+        tabela[i] = new double[numVariaveis + numRestricoes + 1]();
     }
-    inicializarTableau();
+    inicializarTabela();
 }
 
 Simplex::~Simplex() {
     for (int i = 0; i <= numRestricoes; ++i) {
-        delete[] tableau[i];
+        delete[] tabela[i];
     }
-    delete[] tableau;
+    delete[] tabela;
 }
 
 void Simplex::resolver() {
@@ -28,34 +28,34 @@ void Simplex::resolver() {
             return;
         }
         realizarPivo(linhaPivo, colunaPivo);
-        imprimirTableau();
+        imprimirTabela();
     }
     imprimirSolucao();
 }
 
-void Simplex::inicializarTableau() {
+void Simplex::inicializarTabela() {
     for (int i = 0; i < numRestricoes; ++i) {
         for (int j = 0; j < numVariaveis; ++j) {
-            tableau[i][j] = matrizRestricoes[i][j]; // Coeficientes das variáveis de decisão
+            tabela[i][j] = matrizRestricoes[i][j]; // Coeficientes das variáveis de decisão
         }
-        tableau[i][numVariaveis + i] = 1; // Variáveis de folga (1 na coluna da variável de folga)
-        tableau[i][numVariaveis + numRestricoes] = valoresRestricoes[i]; // Lado direito (LD)
+        tabela[i][numVariaveis + i] = 1; // Variáveis de folga (1 na coluna da variável de folga)
+        tabela[i][numVariaveis + numRestricoes] = valoresRestricoes[i]; // Lado direito (LD)
     }
     // Inicializa os coeficientes da função objetivo
     for (int j = 0; j < numVariaveis; ++j) {
-        tableau[numRestricoes][j] = -coeficientesObjetivo[j]; // Maximização (negativo)
+        tabela[numRestricoes][j] = -coeficientesObjetivo[j]; // Maximização (negativo)
     }
 
     // Imprime a configuração inicial do tableau (primeira iteração)
-    imprimirTableau();
+    imprimirTabela();
 }
 
 int Simplex::encontrarColunaPivo() {
     int colunaPivo = -1;
     double valorMinimo = 0;
     for (int j = 0; j < numVariaveis + numRestricoes; ++j) {
-        if (tableau[numRestricoes][j] < valorMinimo) {
-            valorMinimo = tableau[numRestricoes][j];
+        if (tabela[numRestricoes][j] < valorMinimo) {
+            valorMinimo = tabela[numRestricoes][j];
             colunaPivo = j;
         }
     }
@@ -66,9 +66,9 @@ int Simplex::encontrarLinhaPivo(int colunaPivo) {
     int linhaPivo = -1;
     double menorRazao = std::numeric_limits<double>::max();
     for (int i = 0; i < numRestricoes; ++i) {
-        if (tableau[i][colunaPivo] > 0) {
+        if (tabela[i][colunaPivo] > 0) {
             // A razão θ é calculada como o valor do lado direito (β) dividido pelo coeficiente da coluna pivô
-            double razao = tableau[i][numVariaveis + numRestricoes] / tableau[i][colunaPivo];
+            double razao = tabela[i][numVariaveis + numRestricoes] / tabela[i][colunaPivo];
             if (razao < menorRazao) {
                 menorRazao = razao;
                 linhaPivo = i;
@@ -79,21 +79,21 @@ int Simplex::encontrarLinhaPivo(int colunaPivo) {
 }
 
 void Simplex::realizarPivo(int linhaPivo, int colunaPivo) {
-    double valorPivo = tableau[linhaPivo][colunaPivo];
+    double valorPivo = tabela[linhaPivo][colunaPivo];
     for (int j = 0; j <= numVariaveis + numRestricoes; ++j) {
-        tableau[linhaPivo][j] /= valorPivo;
+        tabela[linhaPivo][j] /= valorPivo;
     }
     for (int i = 0; i <= numRestricoes; ++i) {
         if (i != linhaPivo) {
-            double fator = tableau[i][colunaPivo];
+            double fator = tabela[i][colunaPivo];
             for (int j = 0; j <= numVariaveis + numRestricoes; ++j) {
-                tableau[i][j] -= fator * tableau[linhaPivo][j];
+                tabela[i][j] -= fator * tabela[linhaPivo][j];
             }
         }
     }
 }
 
-void Simplex::imprimirTableau() {
+void Simplex::imprimirTabela() {
     const int casasDecimais = 2;
 
     cout << "Iteração " << contagemIteracoes << ":\n";
@@ -115,7 +115,7 @@ void Simplex::imprimirTableau() {
         bool ehBase = false;
         int varBase = -1;
         for (int j = 0; j < numVariaveis; ++j) {
-            if (tableau[i][j] == 1) {
+            if (tabela[i][j] == 1) {
                 varBase = j;
                 ehBase = true;
                 break;
@@ -129,7 +129,7 @@ void Simplex::imprimirTableau() {
 
         // Imprimir os coeficientes da linha
         for (int j = 0; j <= numVariaveis + numRestricoes; ++j) {
-            cout << Utils::arredondar(tableau[i][j], casasDecimais) << "\t";
+            cout << Utils::arredondar(tabela[i][j], casasDecimais) << "\t";
         }
 
         cout << endl;
@@ -138,10 +138,7 @@ void Simplex::imprimirTableau() {
     cout << endl;
     cout << "Cj-Zj\t";
     for (int j = 0; j <= numVariaveis + numRestricoes -1; ++j) {
-        double zj = -Utils::arredondar(tableau[numRestricoes][j], casasDecimais);
-        // if (j == numVariaveis + numRestricoes) {
-        //     zj = -zj; // Beta
-        // }
+        double zj = -Utils::arredondar(tabela[numRestricoes][j], casasDecimais);
         if (zj == -0) {
             zj = 0;
         }
@@ -149,7 +146,7 @@ void Simplex::imprimirTableau() {
     }
 
     cout << endl;
-    cout << "Zj(β): " << Utils::arredondar(tableau[numRestricoes][numVariaveis + numRestricoes], casasDecimais);
+    cout << "Zj(β): " << Utils::arredondar(tabela[numRestricoes][numVariaveis + numRestricoes], casasDecimais);
     cout << endl << endl;
 }
 
@@ -157,16 +154,16 @@ void Simplex::imprimirSolucao() {
     double* solucao = new double[numVariaveis]();
     for (int j = 0; j < numVariaveis; ++j) {
         for (int i = 0; i < numRestricoes; ++i) {
-            if (tableau[i][j] == 1) {
+            if (tabela[i][j] == 1) {
                 bool ehBase = true;
                 for (int k = 0; k < numRestricoes; ++k) {
-                    if (k != i && tableau[k][j] != 0) {
+                    if (k != i && tabela[k][j] != 0) {
                         ehBase = false;
                         break;
                     }
                 }
                 if (ehBase) {
-                    solucao[j] = tableau[i][numVariaveis + numRestricoes];
+                    solucao[j] = tabela[i][numVariaveis + numRestricoes];
                     break;
                 }
             }
@@ -176,7 +173,7 @@ void Simplex::imprimirSolucao() {
     for (int j = 0; j < numVariaveis; ++j) {
         cout << "x" << Utils::obterSubscrito(j + 1) << " = " << solucao[j] << endl;
     }
-    cout << "Valor ótimo: " << tableau[numRestricoes][numVariaveis + numRestricoes] << endl;
+    cout << "Valor ótimo: " << tabela[numRestricoes][numVariaveis + numRestricoes] << endl;
     delete[] solucao;
 }
 

@@ -18,14 +18,14 @@ private:
     double* valoresRestricoes;
     double* coeficientesObjetivo;
     int numRestricoes, numVariaveis;
-    double** tableau;
+    double** tabela;
     int contagemIteracoes;
 
-    void inicializarTableau();
+    void inicializarTabela();
     int encontrarColunaPivo();
     int encontrarLinhaPivo(int colunaPivo);
     void realizarPivo(int linhaPivo, int colunaPivo);
-    void imprimirTableau();
+    void imprimirTabela();
     void imprimirSolucao();
 };
 
