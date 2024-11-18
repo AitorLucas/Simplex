@@ -20,3 +20,7 @@ void Utils::limparTela() {
     #endif
 }
 
+double Utils::arredondar(double valor, int casasDecimais) {
+    double fator = pow(10, casasDecimais);
+    return std::round(valor * fator) / fator;
+}

@@ -65,7 +65,7 @@ void exibirCabecalho(int numRestricoes, int numVariaveis, double** matrizRestric
             cout << endl;
         }
     }
-    cout << "=====================" << endl;
+    cout << "══════════════════════════════════════════════════════" << endl;
 }
 
 int main() {

@@ -36,14 +36,18 @@ void Simplex::resolver() {
 void Simplex::inicializarTableau() {
     for (int i = 0; i < numRestricoes; ++i) {
         for (int j = 0; j < numVariaveis; ++j) {
-            tableau[i][j] = matrizRestricoes[i][j];
+            tableau[i][j] = matrizRestricoes[i][j]; // Coeficientes das variáveis de decisão
         }
-        tableau[i][numVariaveis + i] = 1; // Variáveis de folga
-        tableau[i][numVariaveis + numRestricoes] = valoresRestricoes[i];
+        tableau[i][numVariaveis + i] = 1; // Variáveis de folga (1 na coluna da variável de folga)
+        tableau[i][numVariaveis + numRestricoes] = valoresRestricoes[i]; // Lado direito (LD)
     }
+    // Inicializa os coeficientes da função objetivo
     for (int j = 0; j < numVariaveis; ++j) {
-        tableau[numRestricoes][j] = -coeficientesObjetivo[j];
+        tableau[numRestricoes][j] = -coeficientesObjetivo[j]; // Maximização (negativo)
     }
+
+    // Imprime a configuração inicial do tableau (primeira iteração)
+    imprimirTableau();
 }
 
 int Simplex::encontrarColunaPivo() {
@@ -63,6 +67,7 @@ int Simplex::encontrarLinhaPivo(int colunaPivo) {
     double menorRazao = std::numeric_limits<double>::max();
     for (int i = 0; i < numRestricoes; ++i) {
         if (tableau[i][colunaPivo] > 0) {
+            // A razão θ é calculada como o valor do lado direito (β) dividido pelo coeficiente da coluna pivô
             double razao = tableau[i][numVariaveis + numRestricoes] / tableau[i][colunaPivo];
             if (razao < menorRazao) {
                 menorRazao = razao;
@@ -89,6 +94,8 @@ void Simplex::realizarPivo(int linhaPivo, int colunaPivo) {
 }
 
 void Simplex::imprimirTableau() {
+    const int casasDecimais = 2;
+
     cout << "Iteração " << contagemIteracoes << ":\n";
 
     // Imprimir cabeçalho das variáveis
@@ -99,7 +106,7 @@ void Simplex::imprimirTableau() {
     for (int j = 0; j < numRestricoes; ++j) {
         cout << "s" << Utils::obterSubscrito(j + 1) << "\t";  // Variáveis de folga
     }
-    cout << "LD\t";  // Lado direito
+    cout << "β\t";  // Beta
     cout << endl;
 
     // Imprimir as linhas do tableau
@@ -122,16 +129,27 @@ void Simplex::imprimirTableau() {
 
         // Imprimir os coeficientes da linha
         for (int j = 0; j <= numVariaveis + numRestricoes; ++j) {
-            cout << tableau[i][j] << "\t";
+            cout << Utils::arredondar(tableau[i][j], casasDecimais) << "\t";
         }
+
         cout << endl;
     }
 
-    // Imprimir a linha da função objetivo
-    cout << "Z\t";
-    for (int j = 0; j <= numVariaveis + numRestricoes; ++j) {
-        cout << tableau[numRestricoes][j] << "\t";
+    cout << endl;
+    cout << "Cj-Zj\t";
+    for (int j = 0; j <= numVariaveis + numRestricoes -1; ++j) {
+        double zj = -Utils::arredondar(tableau[numRestricoes][j], casasDecimais);
+        // if (j == numVariaveis + numRestricoes) {
+        //     zj = -zj; // Beta
+        // }
+        if (zj == -0) {
+            zj = 0;
+        }
+        cout << zj << "\t";
     }
+
+    cout << endl;
+    cout << "Zj(β): " << Utils::arredondar(tableau[numRestricoes][numVariaveis + numRestricoes], casasDecimais);
     cout << endl << endl;
 }
 
